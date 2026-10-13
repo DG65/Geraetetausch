@@ -16,7 +16,7 @@
         },
         {
           "type": "Label",
-          "caption": "MigrationsHub überträgt Datenpunkte einer alten Instanz (z. B. ein selbstgebautes Skript oder ein abgelöstes Modul) auf eine neue Hub-Instanz (z. B. InverterHub, MeterHub) — mitsamt Archivhistorie, WebFront-Verknüpfungen und, wo möglich, ganz ohne Datenverlust."
+          "caption": "Gerätetausch überträgt Datenpunkte einer alten Instanz (z. B. ein selbstgebautes Skript oder ein abgelöstes Modul) auf eine neue Hub-Instanz (z. B. InverterHub, MeterHub) — mitsamt Archivhistorie, WebFront-Verknüpfungen und, wo möglich, ganz ohne Datenverlust."
         },
         {
           "type": "Label",
@@ -56,7 +56,7 @@
         },
         {
           "type": "Label",
-          "caption": "6. Sind bei einer Alt-Instanz danach keine Datenpunkte mehr übrig, schlägt MigrationsHub das automatisch vor. Sonst manuell über \"Instanz analysieren & löschen\" prüfen und erst löschen, wenn der Report keine Blockade mehr zeigt."
+          "caption": "6. Sind bei einer Alt-Instanz danach keine Datenpunkte mehr übrig, schlägt Gerätetausch das automatisch vor. Sonst manuell über \"Instanz analysieren & löschen\" prüfen und erst löschen, wenn der Report keine Blockade mehr zeigt."
         },
         {
           "type": "Label",
@@ -64,7 +64,7 @@
         },
         {
           "type": "Label",
-          "caption": "• Wh/kWh-Zwillinge: manche Alt-Datenpunkte gibt es doppelt, einmal in Wh und einmal in kWh (Faktor 1000 versetzt). MigrationsHub markiert das automatisch und schlägt die kWh-Variante vor."
+          "caption": "• Wh/kWh-Zwillinge: manche Alt-Datenpunkte gibt es doppelt, einmal in Wh und einmal in kWh (Faktor 1000 versetzt). Gerätetausch markiert das automatisch und schlägt die kWh-Variante vor."
         },
         {
           "type": "Label",
@@ -110,7 +110,7 @@
     {
       "type": "Button",
       "caption": "⚡ Alt-Instanz vorbereiten (lädt, wählt archivierte/verknüpfte Datenpunkte, ordnet zu, simuliert)",
-      "onClick": "MIGHUB_PrepareAllAdoptions($id, $SourceInstanceID, $TargetInstanceID);"
+      "onClick": "GTAUSCH_PrepareAllAdoptions($id, $SourceInstanceID, $TargetInstanceID);"
     },
     {
       "type": "Label",
@@ -200,7 +200,7 @@
         {
           "type": "Button",
           "caption": "Alt-Datenpunkte laden",
-          "onClick": "MIGHUB_LoadSourceVariables($id, $SourceInstanceID);"
+          "onClick": "GTAUSCH_LoadSourceVariables($id, $SourceInstanceID);"
         },
         {
           "type": "List",
@@ -252,24 +252,24 @@
             {
               "type": "Button",
               "caption": "Alle auswählen",
-              "onClick": "MIGHUB_SetAllSourceVariablesSelected($id, $SourceVariables, true);"
+              "onClick": "GTAUSCH_SetAllSourceVariablesSelected($id, $SourceVariables, true);"
             },
             {
               "type": "Button",
               "caption": "Alle abwählen",
-              "onClick": "MIGHUB_SetAllSourceVariablesSelected($id, $SourceVariables, false);"
+              "onClick": "GTAUSCH_SetAllSourceVariablesSelected($id, $SourceVariables, false);"
             },
             {
               "type": "Button",
               "caption": "Nur archivierte/verknüpfte auswählen",
-              "onClick": "MIGHUB_SelectOnlyReferencedSourceVariables($id, $SourceVariables);"
+              "onClick": "GTAUSCH_SelectOnlyReferencedSourceVariables($id, $SourceVariables);"
             }
           ]
         },
         {
           "type": "Button",
           "caption": "Ausgewählte Alt-Datenpunkte → in Migrationsliste übernehmen",
-          "onClick": "MIGHUB_AddSourceVariablesToMigrationsEx($id, $SourceVariables, $Migrations, $TargetInstanceID, $SourceInstanceID);"
+          "onClick": "GTAUSCH_AddSourceVariablesToMigrationsEx($id, $SourceVariables, $Migrations, $TargetInstanceID, $SourceInstanceID);"
         },
         {
           "type": "Label",
@@ -282,7 +282,7 @@
         {
           "type": "Button",
           "caption": "Referenzen suchen (Skripte/Ereignisse)",
-          "onClick": "MIGHUB_ScanReferences($id, $Migrations);"
+          "onClick": "GTAUSCH_ScanReferences($id, $Migrations);"
         },
         {
           "type": "Label",
@@ -295,7 +295,7 @@
           "rowCount": 8,
           "add": false,
           "delete": true,
-          "onEdit": "MIGHUB_SaveScriptChecks($id, $ScriptChecks);",
+          "onEdit": "GTAUSCH_SaveScriptChecks($id, $ScriptChecks);",
           "columns": [
             {
               "caption": "Alte Variable",
@@ -340,7 +340,7 @@
           "rowCount": 8,
           "add": false,
           "delete": true,
-          "onEdit": "MIGHUB_SaveEventChecks($id, $EventChecks);",
+          "onEdit": "GTAUSCH_SaveEventChecks($id, $EventChecks);",
           "columns": [
             {
               "caption": "Alte Variable",
@@ -378,7 +378,7 @@
           "type": "Button",
           "caption": "Prüflisten leeren (Skript-/Ereignis-Funde)",
           "confirm": "Beide Prüflisten wirklich leeren? Das betrifft auch noch nicht abgehakte Funde.",
-          "onClick": "MIGHUB_ClearReferenceChecks($id);"
+          "onClick": "GTAUSCH_ClearReferenceChecks($id);"
         },
         {
           "type": "Label",
@@ -394,13 +394,13 @@
             {
               "type": "Button",
               "caption": "Verknüpfen simulieren (Probelauf)",
-              "onClick": "MIGHUB_SimulateMigrations($id, $Migrations);"
+              "onClick": "GTAUSCH_SimulateMigrations($id, $Migrations);"
             },
             {
               "type": "Button",
               "caption": "Verknüpfen jetzt ausführen",
               "confirm": "Dieser Vorgang überträgt Archivhistorie und Verknüpfungen unwiderruflich auf die neuen Variablen. Wirklich fortfahren?",
-              "onClick": "MIGHUB_RunMigrations($id, $Confirmed, $Migrations);"
+              "onClick": "GTAUSCH_RunMigrations($id, $Confirmed, $Migrations);"
             }
           ]
         }
@@ -410,7 +410,7 @@
       "type": "Button",
       "caption": "Migrationsliste leeren",
       "confirm": "Alle Zeilen aus der Migrationsliste entfernen?",
-      "onClick": "MIGHUB_ClearMigrations($id);"
+      "onClick": "GTAUSCH_ClearMigrations($id);"
     },
     {
       "type": "Label",
@@ -436,13 +436,13 @@
         {
           "type": "Button",
           "caption": "Simulieren (Probelauf)",
-          "onClick": "MIGHUB_SimulateAdoptions($id, $Migrations);"
+          "onClick": "GTAUSCH_SimulateAdoptions($id, $Migrations);"
         },
         {
           "type": "Button",
           "caption": "Jetzt ausführen",
           "confirm": "Die alten Variablen werden unter die neuen Instanzen gehängt — ihre Kennung (und damit Archivhistorie und alle Verknüpfungen) bleibt dabei erhalten. Vor jedem Datenpunkt wird zuerst unauffällig geprüft, ob das sicher möglich ist; wo nicht, wird automatisch die Archivhistorie klassisch auf die neue Variable umgehängt. Wirklich fortfahren?",
-          "onClick": "MIGHUB_RunAdoptionsEx($id, $Confirmed, $RiskAcknowledged, $Migrations);"
+          "onClick": "GTAUSCH_RunAdoptionsEx($id, $Confirmed, $RiskAcknowledged, $Migrations);"
         }
       ]
     },
@@ -513,7 +513,7 @@
         {
           "type": "Button",
           "caption": "Instanz analysieren",
-          "onClick": "MIGHUB_AnalyzeInstance($id, $AnalyzeInstanceID);"
+          "onClick": "GTAUSCH_AnalyzeInstance($id, $AnalyzeInstanceID);"
         },
         {
           "type": "List",
@@ -555,7 +555,7 @@
           "type": "Button",
           "caption": "Instanz jetzt löschen",
           "confirm": "Die gewählte Instanz wird unwiderruflich gelöscht (samt Kindvariablen). Transport-Abhängigkeiten blockieren das Löschen; Warnungen werden überstimmt. Wirklich fortfahren?",
-          "onClick": "MIGHUB_DeleteInstanceChecked($id, $AnalyzeInstanceID, $DeleteConfirmed);"
+          "onClick": "GTAUSCH_DeleteInstanceChecked($id, $AnalyzeInstanceID, $DeleteConfirmed);"
         }
       ]
     },
@@ -612,7 +612,7 @@
           "type": "Button",
           "caption": "Protokoll leeren",
           "confirm": "Das dauerhafte Migrations-Protokoll wirklich leeren?",
-          "onClick": "MIGHUB_ClearMigrationLog($id);"
+          "onClick": "GTAUSCH_ClearMigrationLog($id);"
         }
       ]
     }

@@ -1,0 +1,14 @@
+{
+  "id": "{330717BB-E309-41A2-90A8-FDA3179ED948}",
+  "name": "Geraetetausch",
+  "type": 3,
+  "vendor": "",
+  "aliases": [
+    "DG65-Toolkit Gerätetausch"
+  ],
+  "url": "https://github.com/DG65/Geraetetausch",
+  "parentRequirements": [],
+  "childRequirements": [],
+  "implemented": [],
+  "prefix": "GTAUSCH"
+}

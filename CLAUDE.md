@@ -1,24 +1,29 @@
 # Hinweise für die Arbeit an diesem Repository
 
-## Markenzugehörigkeit: DG65 Toolkit (nicht NRG-Stack)
+## Markenzugehörigkeit: DG65-Toolkit (nicht NRG-Stack)
 
 Entscheidung Dietmars (01.09.2026, via GleitenderMittelwert-Sitzung kommuniziert):
-MigrationsHub gehört zum **DG65 Toolkit** (domänenfreie Hilfsmodule, Gründungsmitglieder u. a.
+Gerätetausch gehört zum **DG65-Toolkit** (domänenfreie Hilfsmodule, Gründungsmitglieder u. a.
 GleitenderMittelwert, StrukturHub), nicht zum energiebezogenen NRG-Stack — trotz der bisherigen
 praktischen Nähe zu dessen Modulen. Begründung (eigene Einschätzung, von Dietmar bestätigt): der
 Kern (Reparenten, Archivhistorie, Referenzsuche, Instanz-Analyse) ist vollständig domänenfrei und
 würde für jede beliebige Symcon-Modul-Migration funktionieren — die einzige echte Ausnahme ist die
-Wh/kWh-Zwillingserkennung (bleibt als Kernlogik bestehen). Ändert nichts an der Fachlichkeit, nur
-an der Außendarstellung (`library.json`, README, Modul-Aliase).
+Wh/kWh-Zwillingserkennung (bleibt als Kernlogik bestehen).
 
-**Modulname im DG65 Toolkit: „Vormund"** (verspielte Namensfindungsrunde, 08.09.2026, moderiert
-von StrukturHub/Katasteramt). Begründung eigener Vorschlag: der bevorzugte Migrationsweg heißt
-intern bereits „Übernahme (Adoption)" — eine Vormundschaft übernimmt Verantwortung für jemanden,
-dessen eigene Identität dabei erhalten bleibt, genau wie hier die Objekt-ID/Historie beim
-Instanzwechsel. Betrifft NUR die Außendarstellung (`library.json→name`, Alias in
-`module.json→aliases`, README) — `module.json→name` (PHP-Klassenname), Repository-Name und
-Instanztyp bleiben bewusst „MigrationsHub" (Umbenennen des Klassennamens bricht laufende
-Installationen, siehe frühere Incident-Historie).
+**Modulname: „Gerätetausch"** (seit 13.10.2026; verbindliche TOOLKIT.md-Regel „Umbenennung auf
+Funktionsnamen" — alle DG65-Toolkit-Module heißen jetzt nach dem, was sie tun, statt nach dem
+früheren Personen-/Behördenbild). Vorherige Namen: zunächst „MigrationsHub" (reiner technischer
+Name, Repo `NRGMigrationsHub`), ab 08.09.2026 zusätzlich Anzeigename „Vormund"
+(Namensfindungsrunde, moderiert von StrukturHub/Katasteramt — Begründung war die Analogie zur
+„Übernahme (Adoption)": eine Vormundschaft übernimmt Verantwortung für jemanden, dessen eigene
+Identität erhalten bleibt). Mit der 13.10.2026-Umbenennung zog diesmal AUCH der technische Name
+mit (PHP-Klasse `MigrationsHub`→`Geraetetausch`, Präfix `MIGHUB_`→`GTAUSCH_`, Repo
+`NRGMigrationsHub`→`Geraetetausch`) — anders als bei der vorherigen Vormund-Umbenennung, weil
+Dietmar diesen Schritt ausdrücklich und verbundweit angeordnet hat (siehe TOOLKIT.md) UND zum
+Umbenennungszeitpunkt keine laufende Instanz mehr existierte, die dadurch hätte brechen können.
+**Modul- und Bibliotheks-GUID bleiben unverändert** (`{330717BB-E309-41A2-90A8-FDA3179ED948}`
+bzw. `{4E96A5B5-515B-41CB-B8A9-8D9BC67C21BB}`), damit Partnermodule, die diese GUID per
+`IPS_CreateInstance()` referenzieren, weiter funktionieren.
 
 ## Verwandte Repositories
 
@@ -26,8 +31,8 @@ Weiterhin praktisch am engsten abgestimmt mit den NRG-Stack-Modulen (Discovery-I
 Ident-Auskunft — siehe unten), an denen teilweise **gleichzeitig in getrennten Sitzungen**
 gearbeitet wird:
 
-- **MigrationsHub** (dieses Repo): Migration von Bestandsgeräten/Verknüpfungen/Archivwerten —
-  https://github.com/DG65/NRGMigrationsHub
+- **Gerätetausch** (dieses Repo): Migration von Bestandsgeräten/Verknüpfungen/Archivwerten —
+  https://github.com/DG65/Geraetetausch
 - **InverterHub**: Wechselrichter per Modbus TCP — https://github.com/DG65/NRGInverterHub
 - **MeterHub**: Energiezähler per Modbus TCP — https://github.com/DG65/NRGMeterHub
 - **ChargerHub**: Wallboxen per Modbus TCP — https://github.com/DG65/NRGChargerHub
@@ -36,15 +41,15 @@ gearbeitet wird:
 ## Discovery-Integration (API für andere Module)
 
 Damit Migration Teil des normalen Geräte-Scans werden kann statt ein separates, erst zu
-findendes Werkzeug: `MIGHUB_FindLegacyCandidates($id, $host, $port=0, $unitId=0,
-$excludeInstanceID=0): array` und `MIGHUB_PrefillMigration($id, $oldInstanceID,
+findendes Werkzeug: `GTAUSCH_FindLegacyCandidates($id, $host, $port=0, $unitId=0,
+$excludeInstanceID=0): array` und `GTAUSCH_PrefillMigration($id, $oldInstanceID,
 $newInstanceID): void`. Matching **immer über Host/Port/Unit-ID, nie über den Namen** (zwei
 reale Namens-Fallen bereits erlebt: ModBus-Gateway namens "Goodwe Wechselrichter", fünf
 gleichnamige aber unterschiedliche "Siemens PAC2200"-Instanzen). `$excludeInstanceID`: die
 eigene, gerade frisch angelegte Zielinstanz übergeben, damit sie sich nicht selbst als Alt-
 Instanz findet (echter Fall mit ChargerHub, 03.08.2026: neue Instanz und Alt-Instanz zufällig
 kurzzeitig gleiche IP, ohne Ausschluss wäre "migriere von dir selbst" möglich gewesen).
-Aufrufendes Modul: eigene MigrationsHub-Instanz bei Bedarf selbst per
+Aufrufendes Modul: eigene Gerätetausch-Instanz bei Bedarf selbst per
 `IPS_CreateInstance('{330717BB-E309-41A2-90A8-FDA3179ED948}')` anlegen (kein API-Bedarf dafür),
 nach Bestätigung `PrefillMigration` aufrufen, dann per `OpenObjectButton` (Instanz-ID) im eigenen
 Formular dorthin navigieren. Abgestimmt mit InverterHub (29.07.2026), Ausschluss-Parameter mit
@@ -53,13 +58,13 @@ ChargerHub (03.08.2026).
 ## Ident-Auskunft von Zielmodulen (`<PREFIX>_GetIdentMapping`, Verbund-Vertrag 03.08.2026)
 
 Gegenrichtung zur Discovery-Integration: Hub-Module (InverterHub/MeterHub/ChargerHub) können
-MigrationsHub optional mitteilen, wie sie die Idents eines bekannten Fremdmoduls auf ihre eigenen
+Gerätetausch optional mitteilen, wie sie die Idents eines bekannten Fremdmoduls auf ihre eigenen
 abbilden — statt dass wir das extern raten oder mühsam aus fremdem Quellcode nachbauen (Lehre aus
 der go-e-Charger-Migration, wo eine hartkodierte, teils fehlerhafte Tabelle nötig war, siehe
 `GetKnownIdentTranslation()`).
 
 Vertrag: `<PREFIX>_GetIdentMapping($id, string $foreignModuleGUID, array $foreignIdents): array`
-— `$id` = die MigrationsHub anfragende Zielinstanz (kennt ihr eigenes aktuell gültiges Ident-Set,
+— `$id` = die Gerätetausch anfragende Zielinstanz (kennt ihr eigenes aktuell gültiges Ident-Set,
 das ist bei manchen Modulen instanzabhängig, z. B. je nach Zählertyp/Messmodus bei MeterHub);
 `$foreignIdents` = die tatsächlich an der Alt-Instanz vorhandenen Idents (nötig, weil manche
 Vorgängermodule Felder je nach Firmware unterschiedlich benennen, z. B. `power1` vs.
@@ -69,14 +74,14 @@ Treffer, leeres Array = "kenne diese Fremdmodul-GUID nicht" (kein Fehler).
 
 **Bewusst NUR eine Auskunftsfunktion, keine zweite Funktion für die eigentliche Übernahme.**
 Ein ursprünglicher Gegenvorschlag (Zielmodul reparentet selbst per eigener
-`AdoptFromLegacyInstance()`-Funktion) wurde verworfen: MigrationsHub reparentet Alt-Variablen
+`AdoptFromLegacyInstance()`-Funktion) wurde verworfen: Gerätetausch reparentet Alt-Variablen
 selbst per `IPS_SetParent`/`IPS_SetIdent`, BEVOR `IPS_ApplyChanges($targetInstanceID)` aufgerufen
 wird — die im Zielmodul ohnehin vorhandene Prune-vor-Register-Sequenz (bestätigt im eigenen Code
 von InverterHub UND MeterHub: erst gültiges Ident-Set berechnen, dann `PruneForeignObjects()`,
 dann `RegisterVar()`/Äquivalent) greift dann automatisch korrekt, weil die Variablen zu diesem
 Zeitpunkt schon umbenannt sind — kein Rateaufwand mehr über die bisherige Preflight-Sonde nötig,
 sobald das Zielmodul `GetIdentMapping` anbietet. Reparenting/Pruning/Simulation/Ausführung
-bleiben dadurch vollständig zentral bei MigrationsHub (Single Point of Truth, wie von ChargerHub
+bleiben dadurch vollständig zentral bei Gerätetausch (Single Point of Truth, wie von ChargerHub
 betont) — das Zielmodul fasst dabei keine IPS-Objekte an, liefert nur Auskunft.
 
 Aufruf bei uns über `GetForeignIdentMapping()`: Prefix des Zielmoduls dynamisch via
@@ -89,7 +94,7 @@ InverterHub befüllt zunächst nur GoodweET (1:1-Portierung), MeterHub den Disco
 ChargerHub den go-e-Charger-Fall (löst die bisherige externe Tabelle bei uns ab, sobald live).
 
 **Plattform-Falle (Verbund-relevant, per 03.08.2026 bestätigt): PHP-Default-Werte optionaler
-Parameter gelten NICHT für den `MIGHUB_*`-RPC-Wrapper.** Als `FindLegacyCandidates()` einen 5.
+Parameter gelten NICHT für den `GTAUSCH_*`-RPC-Wrapper.** Als `FindLegacyCandidates()` einen 5.
 Parameter mit PHP-Default `= 0` bekam, brach bei ChargerHub (Aufruf mit den bisherigen 4
 Parametern) live `ArgumentCountError: Too few arguments … 4 passed, exactly 5 expected` — obwohl
 die PHP-Signatur den Parameter klar optional deklariert. IP-Symcons Kernel generiert die
@@ -127,7 +132,7 @@ Reines Suchen-und-Ersetzen hinterlässt Grammatikfehler. (Erfahrung aus Inverter
 
 ## Besonderheit gegenüber den anderen Hub-Modulen
 
-MigrationsHub ist **kein** Live-Datenanbieter wie InverterHub/MeterHub/ChargerHub, sondern ein
+Gerätetausch ist **kein** Live-Datenanbieter wie InverterHub/MeterHub/ChargerHub, sondern ein
 einmalig/gelegentlich genutztes Werkzeug. Es bietet daher keinen `*_GetFunctions`-Vertrag im
 üblichen Sinn — es liest oder erzeugt keine laufenden Messwerte, sondern verknüpft vorhandene
 Variablen und überträgt Archivhistorie.
@@ -184,7 +189,7 @@ einem (noch) ungültigen Ident/Typ an, wird sie samt Historie unwiederbringlich 
 Gegensatz: `AC_ChangeVariableID` schlägt bei bereits belegtem Ziel **sicher** fehl (verweigert,
 Altdaten bleiben) — bei Typ-Mismatch dagegen NICHT: dort wirft es live einen Fatal Error
 ("Variablen müssen vom selben Typ sein") statt `false` zurückzugeben (live bestätigt über
-ChargerHub, 03.08.2026, Rückfall-Pfad bei Integer/Boolean-Mismatch). MigrationsHub prüft den
+ChargerHub, 03.08.2026, Rückfall-Pfad bei Integer/Boolean-Mismatch). Gerätetausch prüft den
 Typ deshalb selbst vorab und meldet einen sauberen Fehlschlag, statt den Aufruf crashen zu
 lassen. Adoption braucht trotzdem **mehr** Vorab-Sicherung als Verknüpfen, nicht weniger.
 
@@ -222,7 +227,7 @@ wichtiger.
 **Befund Anzeigeprofil:** Das Zielmodul setzt beim Wiederverwenden KEIN Profil (respektiert die
 Stable-Regel „Custom-Profile nicht in ApplyChanges überschreiben"). Eine echte Alt-Variable behält
 ihr eigenes altes Profil (Objekt-ID erhalten), zeigt also das QUELL-Profil, nicht das des Ziels.
-Die Angleichung ans Zielmodul ist daher **Aufgabe von MigrationsHub**: vor dem Entfernen der frisch
+Die Angleichung ans Zielmodul ist daher **Aufgabe von Gerätetausch**: vor dem Entfernen der frisch
 angelegten Modul-Variable deren beabsichtigtes Profil je Ident auslesen und nach der Adoption per
 `IPS_SetVariableCustomProfile` auf die übernommene Variable setzen — als explizite Migrationsaktion
 (nicht in einem Modul-`ApplyChanges`), die die Stable-Regel nicht verletzt.
@@ -283,14 +288,14 @@ Erkenntnisse aus bisherigen Store-Reviews im Verbund — bei jeder Änderung ein
   Major, blue'Log-Prinzip), Minor additiv, fehlend = `'1.0'`. Ist die Major eines Partnermoduls zu
   alt: standalone weiterlaufen, Kopplung deaktivieren, sichtbar melden
   (`⚠️ Partnermodul X benötigt eine Aktualisierung …`). Suite-Release als CalVer im Manifest.
-  MigrationsHub hat selbst **keinen** Datenvertrag; maßgebliche Kompatibilitätsgröße beim Migrieren
+  Gerätetausch hat selbst **keinen** Datenvertrag; maßgebliche Kompatibilitätsgröße beim Migrieren
   sind die **Idents** (API) der Suite-Zielmodule, nicht deren Modulversionen.
 - **Zugangsdaten (Verbund-Konvention, für Module mit Cloud-/API-Zugang):** Handshake-/Token-
   Verfahren bevorzugen (Passwort nur für den einmaligen Handshake, danach nicht speichern — nur
   Token/Secret bleibt liegen); Passwörter nur dauerhaft speichern, wenn wirklich wiederholt
   gebraucht. Speicherort `RegisterAttributeString` (nicht Property, nicht im Formular sichtbar);
   IP-Symcon verschlüsselt nicht at rest — „sicher" heißt „nicht sichtbar", nicht „verschlüsselt".
-  Formulareingabe über `PasswordTextBox`, Wert nach Handshake sofort leeren. MigrationsHub
+  Formulareingabe über `PasswordTextBox`, Wert nach Handshake sofort leeren. Gerätetausch
   verwaltet selbst keine Zugangsdaten; relevant nur, falls die Adoption je ein Zugangsdaten-
   Attribut umhängt — Attribute bleiben beim Umhängen unverändert erhalten, keine Sonderbehandlung
   nötig.
@@ -310,7 +315,7 @@ Erkenntnisse aus bisherigen Store-Reviews im Verbund — bei jeder Änderung ein
   Formular als hardware-/regionsfremder Nutzer durchgehen; Fabrikate/Beispiele nur als "z. B.";
   Discovery-vs-manuell an jeder Stelle klarstellen; Default-Werte dürfen nie eigene
   Sonderkonfiguration widerspiegeln; Volltextsuche nach eigenen IDs/PLZ/Kampagnennamen; wo
-  möglich zweite Session gegenprüfen lassen. Für MigrationsHub bereits geprüft (23.07.2026):
+  möglich zweite Session gegenprüfen lassen. Für Gerätetausch bereits geprüft (23.07.2026):
   generisches Werkzeug ohne hartkodierten Hersteller, README-Beispiele bereits "z. B."-gerahmt;
   zwei Code-Kommentare mit realen Instanz-IDs aus einer Live-Analyse (nicht laufzeitrelevant, aber
   gegen den Geist der Regel) auf generische Formulierung umgestellt.

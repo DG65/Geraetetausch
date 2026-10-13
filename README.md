@@ -1,4 +1,4 @@
-# MigrationsHub (im DG65 Toolkit: „Vormund")
+# Gerätetausch
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
 ![Modul Version](https://img.shields.io/badge/Modul_Version-0.1.0-blue)
@@ -11,20 +11,20 @@ IP-Symcon-Modul zur Migration von Bestandsgeräten: Übernahme alter Variablen a
 [InverterHub](https://github.com/DG65/NRGInverterHub) oder [MeterHub](https://github.com/DG65/NRGMeterHub))
 — **mitsamt Archivhistorie und bestehenden Verknüpfungen**.
 
-Teil des **DG65 Toolkit** (domänenfreie Hilfsmodule, im Unterschied zum energiebezogenen
+Teil des **DG65-Toolkit** (domänenfreie Hilfsmodule, im Unterschied zum energiebezogenen
 NRG-Stack) — funktioniert unabhängig vom Zielmodul mit jeder IP-Symcon-Instanz, ist aber bisher
 vor allem mit NRG-Stack-Modulen wie InverterHub/MeterHub/ChargerHub erprobt und abgestimmt
 (Discovery-Integration, Ident-Auskunft — siehe unten); welche Modulstände zusammenpassen, steht
-im internen Verbund-Manifest. Trägt im DG65 Toolkit den Namen **„Vormund"** (Übernahme einer
-fremden Variable bei erhaltener eigener Identität, analog zur Vormundschaft) — Klassenname,
-Repository und Instanztyp bleiben aus Kompatibilitätsgründen weiterhin „MigrationsHub".
+im internen Verbund-Manifest. Hieß zwischenzeitlich „Vormund"/„MigrationsHub" — seit 13.10.2026
+heißen Toolkit-Module nach dem, was sie tun; Klasse, Präfix und Repository wurden entsprechend
+mit umbenannt (siehe CHANGELOG).
 
 ## Wofür braucht man das?
 
 Wird ein Bestandsgerät durch ein neues Hub-Modul ersetzt (z. B. ein selbstgebautes
 Wechselrichter-Skript durch InverterHub), entstehen neue Variablen — die bisherige
 Archiv-Historie und alle Referenzen (Verknüpfungen, Skripte, Ereignisse) hängen aber an den
-alten. Ohne Migration reißt die Historie an dieser Stelle ab. MigrationsHub überträgt sie.
+alten. Ohne Migration reißt die Historie an dieser Stelle ab. Gerätetausch überträgt sie.
 
 ## Zwei Migrationswege
 
@@ -39,7 +39,7 @@ Zielmodul einen unerkannten Datenpunkt beim Speichern ersatzlos löschen kann (g
 Verhalten nur bei den eigenen Suite-Modulen garantiert).
 
 **Nach vollständiger Übernahme:** Ist eine Alt-Instanz danach ohne verbliebene Datenpunkte,
-schlägt MigrationsHub automatisch vor, sie über „Instanz analysieren & löschen" zu prüfen und
+schlägt Gerätetausch automatisch vor, sie über „Instanz analysieren & löschen" zu prüfen und
 zu entfernen.
 
 **2. Verknüpfen (`AC_ChangeVariableID`) — Rückfall.** Überträgt die Logging-Historie auf die neue
@@ -47,7 +47,7 @@ Variable und hängt Verknüpfungen um. `AC_ChangeVariableID($ArchiveID, $OldVari
 $NewVariableID)` funktioniert nur, wenn `$NewVariableID` **noch nie geloggt wurde** (jungfräulicher
 Archiv-Zustand). Diese Funktion ist nicht offiziell dokumentiert; sie wurde über
 `get_defined_functions()['internal']` (gefiltert nach `ac_`-Präfix) gefunden und bei der
-GoodweET-Migration empirisch bestätigt. MigrationsHub prüft vor jeder Übertragung, ob das Ziel
+GoodweET-Migration empirisch bestätigt. Gerätetausch prüft vor jeder Übertragung, ob das Ziel
 bereits Historie hat, und lehnt sonst ab.
 
 ## Weitere Funktionen
@@ -64,22 +64,22 @@ bereits Historie hat, und lehnt sonst ab.
 ## Installation
 
 1. In der IP-Symcon-Konsole: **Modulverwaltung → Hinzufügen** und die URL dieses Repositories
-   eintragen: `https://github.com/DG65/NRGMigrationsHub`
-2. Eine neue Instanz vom Typ **„MigrationsHub"** anlegen.
+   eintragen: `https://github.com/DG65/Geraetetausch`
+2. Eine neue Instanz vom Typ **„Gerätetausch"** anlegen.
 
 ## Ablauf Schritt für Schritt
 
 Die kurze Version steht auch im Formular selbst unter „📖 Dokumentation & Hilfe" — hier die
 ausführliche Fassung, falls du sie vorab lesen möchtest.
 
-**0. Zielmodul zuerst.** Bevor du MigrationsHub startest: die neue Hub-Instanz (z. B.
+**0. Zielmodul zuerst.** Bevor du Gerätetausch startest: die neue Hub-Instanz (z. B.
 InverterHub, MeterHub) installieren und konfigurieren. Dabei entstehen die neuen Datenpunkte
 bereits — aber **„Kommunikation aktiv" zunächst ausgeschaltet lassen**. Grund: die neuen
 Datenpunkte sollen noch keine eigenen Werte geloggt haben, wenn die alte Historie übertragen
-wird — sonst müsste MigrationsHub zwei sich überlappende Datenreihen zusammenführen, was es
+wird — sonst müsste Gerätetausch zwei sich überlappende Datenreihen zusammenführen, was es
 bewusst nicht automatisch tut.
 
-**1. MigrationsHub-Instanz anlegen** und im Formular Schritt 1 die Alt-Instanz (deine bisherige
+**1. Gerätetausch-Instanz anlegen** und im Formular Schritt 1 die Alt-Instanz (deine bisherige
 Lösung) und die eben vorbereitete Neu-Instanz auswählen.
 
 **2. „⚡ Alt-Instanz vorbereiten" klicken.** Erledigt in einem Schritt: Datenpunkte laden,
@@ -95,11 +95,11 @@ wird oder Verknüpfungen hat — je mehr, desto wichtiger eine sorgfältige Zuor
 
 **4. Ausführen.** Bestätigungsschalter setzen, dann „Jetzt ausführen" — der einzige unwiderrufliche
 Schritt. Wo die Übernahme technisch nicht möglich ist (z. B. unterschiedlicher Datentyp), fällt
-MigrationsHub automatisch auf den zweiten Weg (Verknüpfen) zurück — das steht dann so im Ergebnis.
+Gerätetausch automatisch auf den zweiten Weg (Verknüpfen) zurück — das steht dann so im Ergebnis.
 
 **5. Nachbereiten.** An der neuen Instanz „Kommunikation aktiv" einschalten. Verbliebene
 Skript-/Ereignis-Funde aus der Prüfliste abarbeiten. Ist eine Alt-Instanz nach der Übernahme
-vollständig leer, schlägt MigrationsHub das Löschen automatisch vor; sonst die alte Instanz
+vollständig leer, schlägt Gerätetausch das Löschen automatisch vor; sonst die alte Instanz
 manuell über „Instanz analysieren & löschen" prüfen — das Löschen wird automatisch blockiert,
 solange noch andere
 Instanzen als Verbindung (Transport) daran hängen.

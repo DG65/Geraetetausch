@@ -1,7 +1,7 @@
 <?php
 
 // ===========================================================================
-// MigrationsHub — Werkzeug zur Migration von Bestandsgeräten: Verknüpfung
+// Gerätetausch — Werkzeug zur Migration von Bestandsgeräten: Verknüpfung
 // alter Variablen mit neuen (z. B. nach Gerätetausch oder Umstieg auf ein
 // Hub-Modul) sowie Übernahme historischer Archivwerte auf die neue Variable.
 //
@@ -15,7 +15,7 @@
 // Massenverarbeitung mehrerer Variablenpaare) folgt als nächster Schritt.
 // ===========================================================================
 
-class MigrationsHub extends IPSModule
+class Geraetetausch extends IPSModule
 {
     public function Create()
     {
@@ -69,16 +69,16 @@ class MigrationsHub extends IPSModule
     // wie InverterHub/MeterHub kann nach einem Discovery-Treffer bei uns
     // nachfragen, ob es dafür schon eine Alt-Instanz gibt — und bei Zustimmung
     // unsere Instanz direkt vorbelegt öffnen. Aufruf immer hinter
-    // function_exists('MIGHUB_...') absichern (Eigenständigkeitsregel).
+    // function_exists('GTAUSCH_...') absichern (Eigenständigkeitsregel).
     //
     // Ablauf für das aufrufende Modul:
-    // 1. Existiert noch keine MigrationsHub-Instanz, selbst eine anlegen
+    // 1. Existiert noch keine Gerätetausch-Instanz, selbst eine anlegen
     //    (IPS_CreateInstance('{330717BB-E309-41A2-90A8-FDA3179ED948}')) — dafür
     //    braucht es keine Funktion von uns, das ist normale IPS-Handhabung.
-    // 2. MIGHUB_FindLegacyCandidates($migId, $host, $port, $unitId) aufrufen.
-    // 3. Bestätigt der Nutzer einen Treffer: MIGHUB_PrefillMigration($migId,
+    // 2. GTAUSCH_FindLegacyCandidates($migId, $host, $port, $unitId) aufrufen.
+    // 3. Bestätigt der Nutzer einen Treffer: GTAUSCH_PrefillMigration($migId,
     //    $oldInstanceID, $newInstanceID) aufrufen (setzt Quelle/Ziel bei uns).
-    // 4. Zur MigrationsHub-Instanz navigieren — dafür im eigenen Formular ein
+    // 4. Zur Gerätetausch-Instanz navigieren — dafür im eigenen Formular ein
     //    "OpenObjectButton" auf die (jetzt vorbelegte) Instanz-ID einsetzen,
     //    exakt das Element, das wir selbst für Skript-/Ereignis-Funde nutzen.
 
@@ -956,7 +956,7 @@ class MigrationsHub extends IPSModule
     // vollständig bei uns — das Zielmodul liefert nur Auskunft, fasst keine
     // Objekte an. function_exists()-abgesichert wie jeder Fremdaufruf; liefert
     // [], wenn das Zielmodul die Funktion (noch) nicht anbietet, kein
-    // MigrationsHub-Prefix ermittelbar ist, oder das Fremdmodul dem Zielmodul
+    // Gerätetausch-Prefix ermittelbar ist, oder das Fremdmodul dem Zielmodul
     // unbekannt ist (leeres Ergebnis ist dabei kein Fehler).
     private function GetForeignIdentMapping(int $targetInstanceID, int $sourceInstanceID): array
     {

@@ -1,6 +1,6 @@
 <?php
 /**
- * check-standalone.php — Prüft die Eigenständigkeit dieses Moduls (MigrationsHub).
+ * check-standalone.php — Prüft die Eigenständigkeit dieses Moduls (Gerätetausch).
  *
  * Grundregel des Modul-Verbunds: Kein Modul darf ein anderes voraussetzen.
  * Jeder Aufruf einer fremden Modulfunktion (MHUB_*, PVF_*, HEISHA_* ...) muss
