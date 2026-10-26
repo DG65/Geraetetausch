@@ -583,6 +583,21 @@ class Geraetetausch extends IPSModule
             return $fail('Alte und neue Variable sind identisch');
         }
 
+        // Adoption LÖSCHT die frische Zielvariable samt ihrem Archiv. Hat sie
+        // schon Historie (z. B. von Hand übernommen/korrigiert oder vom Modul
+        // bereits geloggt), würde die verloren gehen — dann lieber ablehnen, wie
+        // es beim reinen Verknüpfen ohnehin geschieht.
+        // Ein paar Werte sind normal: schon das Einschalten der Archivierung durch
+        // das Zielmodul schreibt den aktuellen Wert ins Archiv (live geprüft: 1
+        // Wert). Deshalb erst ab mehr als 10 Werten ablehnen.
+        $targetArchive = $this->FindArchiveInstance($newVariableID);
+        if ($targetArchive !== 0) {
+            $targetValues = @AC_GetLoggedValues($targetArchive, $newVariableID, 0, 0, 11);
+            if (is_array($targetValues) && count($targetValues) > 10) {
+                return $fail('Zielvariable hat bereits Archivhistorie (mehr als 10 Werte) — die Übernahme würde sie löschen, deshalb abgelehnt (Historie zuerst prüfen/sichern)');
+            }
+        }
+
         $newObj = IPS_GetObject($newVariableID);
         $newVar = IPS_GetVariable($newVariableID);
         $targetIdent = $newObj['ObjectIdent'];

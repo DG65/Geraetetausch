@@ -25,6 +25,11 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
   Doppel-Schutz).
 
 ### Changed
+- **Übernahme lehnt Ziele mit vorhandener Archivhistorie ab:** Die Übernahme löscht die frische
+  Zielvariable samt Archiv. Hat sie bereits mehr als 10 archivierte Werte (z. B. von Hand
+  übernommene/korrigierte Historie), wird die Übernahme jetzt mit klarer Meldung abgelehnt,
+  statt diese Historie stillschweigend zu verlieren. Einzelne Werte bleiben unkritisch (schon das
+  Einschalten der Archivierung schreibt einen Wert).
 - **Modul umbenannt: MigrationsHub/„Vormund" → Gerätetausch** (13.10.2026, DG65-Toolkit-weite
   Umstellung auf Funktionsnamen statt Personen-/Behördenbilder). PHP-Klasse, Modulordner,
   Präfix und Repository wurden mit umbenannt — `MigrationsHub` → `Geraetetausch`, `MIGHUB_` →
