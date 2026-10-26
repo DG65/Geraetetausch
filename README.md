@@ -58,6 +58,11 @@ bereits Historie hat, und lehnt sonst ab.
   abhakbare Prüfliste mit Direkt-Öffnen (Skripte/Workflows/IPSView werden **nicht** automatisch
   umgeschrieben — nur aufgelistet).
 - **Wh/kWh-Zwillingserkennung:** markiert die Wh-Variante und empfiehlt die kWh-Variante.
+- **Archiv-Umrechnung bei Einheitenwechsel:** liefert das Zielmodul einen Umrechnungsfaktor (z. B.
+  1000 für kW→W), werden die bereits archivierten Alt-Werte bei der Übernahme umgerechnet, damit
+  Diagramme alte und neue Werte in derselben Einheit zeigen. Der Faktor steht in der Spalte
+  „Archiv-Faktor" und ist änderbar; vor dem Umschreiben des Archivs entsteht automatisch eine
+  Sicherungsdatei, und dieselbe Variable wird nie zweimal umgerechnet.
 - **Instanz-Analyse & geführtes Löschen:** Abhängigkeits-Report vor dem Entfernen einer
   Alt-Instanz; das Löschen wird hart blockiert, solange Transport-/Verbindungskinder daran hängen.
 

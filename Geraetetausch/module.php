@@ -52,6 +52,12 @@ class Geraetetausch extends IPSModule
         // Nachvollziehbarkeit bei abrechnungsrelevanten Variablen (z. B.
         // Zählerstände). Auf MAX_LOG_ENTRIES gedeckelt (älteste zuerst raus).
         $this->RegisterAttributeString('MigrationLog', '[]');
+
+        // Schutz gegen doppelte Archiv-Umrechnung (archiveFactor): je Variable
+        // wird festgehalten, dass ihr Archiv bereits mit welchem Faktor
+        // umgerechnet wurde. Ein zweiter Lauf auf dieselbe Variable würde die
+        // Historie sonst ein weiteres Mal mit dem Faktor multiplizieren.
+        $this->RegisterAttributeString('ArchiveRescaled', '{}');
     }
 
     private const MAX_LOG_ENTRIES = 500;
@@ -508,6 +514,54 @@ class Geraetetausch extends IPSModule
     // AC_ChangeVariableID.
     public function AdoptVariable(int $oldVariableID, int $newVariableID, bool $dryRun = false): array
     {
+        return $this->AdoptVariableWithFactor($oldVariableID, $newVariableID, $dryRun, 1.0);
+    }
+
+    // Übernahme samt optionaler Archiv-Umrechnung. Eigene (private) Methode
+    // statt eines zusätzlichen Parameters an AdoptVariable(): die öffentliche
+    // GTAUSCH_AdoptVariable-Funktion hat feste Arität (siehe Plattform-Falle).
+    // $archiveFactor kommt aus dem Ident-Mapping des Zielmoduls (Feld
+    // 'archiveFactor', z. B. 1000 für kW→W): jeder archivierte Wert der
+    // übernommenen Variable wird damit multipliziert, damit alte Historie und
+    // neue Werte dieselbe Einheit haben. Fehlend/1.0 = keine Umrechnung.
+    private function AdoptVariableWithFactor(int $oldVariableID, int $newVariableID, bool $dryRun, float $archiveFactor): array
+    {
+        // Zeitpunkt VOR der Übernahme: Werte danach schreibt bereits das Zielmodul
+        // in der neuen Einheit — die dürfen nicht mit umgerechnet werden.
+        $cutoff = time();
+        $result = $this->AdoptVariableBase($oldVariableID, $newVariableID, $dryRun);
+        if ($archiveFactor === 1.0) {
+            return $result;
+        }
+        if (!$result['success']) {
+            return $result;
+        }
+        if (!empty($result['alreadyAdopted'])) {
+            // Paar war schon adoptiert — die Umrechnung ist (falls gewünscht)
+            // damals gelaufen; nie ein zweites Mal, siehe ArchiveRescaled.
+            return $result;
+        }
+        // Im Probelauf liegt das Archiv noch an der Alt-Variable; im scharfen
+        // Lauf an der Variable, die AdoptVariableBase() als Archivträger meldet
+        // (bei Adoption die Alt-Variable, beim Rückfall die Zielvariable).
+        $archiveVariableID = $dryRun ? $oldVariableID : (int) ($result['archiveVariableID'] ?? $oldVariableID);
+        $archiveID = $this->FindArchiveInstance($archiveVariableID);
+        if ($archiveID === 0) {
+            $result['reason'] .= ' — Archiv-Umrechnung ×' . $archiveFactor . ' übersprungen (Variable wird in keinem Archiv geloggt)';
+            return $result;
+        }
+        $rescale = $this->RescaleArchiveValues($archiveID, $archiveVariableID, $archiveFactor, $dryRun, $cutoff);
+        if ($rescale['success']) {
+            $result['reason'] .= ' — Archiv ×' . $archiveFactor . ': ' . $rescale['message'];
+        } else {
+            $result['success'] = false;
+            $result['reason'] .= ' — ACHTUNG, Archiv-Umrechnung ×' . $archiveFactor . ' fehlgeschlagen: ' . $rescale['message'];
+        }
+        return $result;
+    }
+
+    private function AdoptVariableBase(int $oldVariableID, int $newVariableID, bool $dryRun): array
+    {
         $fail = fn ($reason, $fallback = false) => ['success' => false, 'mode' => $fallback ? 'Rückfall' : '-', 'reason' => $reason, 'fallback' => $fallback, 'dryRun' => $dryRun];
 
         if (!IPS_VariableExists($oldVariableID)) {
@@ -521,7 +575,7 @@ class Geraetetausch extends IPSModule
             // verwirrenden generischen Fehlers das klar so benennen, ohne einen
             // neuen (unnötigen) Preflight-Sonden-Lauf zu versuchen.
             if (IPS_ObjectExists($oldVariableID)) {
-                return ['success' => true, 'mode' => 'Adoption', 'reason' => 'vermutlich bereits adoptiert (Zielvariable existiert nicht mehr — kein erneuter Versuch nötig)', 'fallback' => false, 'dryRun' => $dryRun];
+                return ['success' => true, 'mode' => 'Adoption', 'reason' => 'vermutlich bereits adoptiert (Zielvariable existiert nicht mehr — kein erneuter Versuch nötig)', 'fallback' => false, 'dryRun' => $dryRun, 'alreadyAdopted' => true];
             }
             return $fail('Neue (Modul-)Variable existiert nicht');
         }
@@ -560,6 +614,7 @@ class Geraetetausch extends IPSModule
             $classic = $this->MigrateVariable($oldVariableID, $newVariableID, false);
             $classic['mode'] = 'Rückfall';
             $classic['reason'] = $reason . ($classic['success'] ? ' — per AC_ChangeVariableID verknüpft' : ' — Rückfall ebenfalls fehlgeschlagen: ' . $classic['reason']);
+            $classic['archiveVariableID'] = $newVariableID;
             return $classic;
         }
 
@@ -584,6 +639,7 @@ class Geraetetausch extends IPSModule
             if ($recreated !== 0) {
                 $classic = $this->MigrateVariable($oldVariableID, $recreated, false);
                 $classic['mode'] = 'Rückfall';
+                $classic['archiveVariableID'] = $recreated;
                 return $classic;
             }
             return $fail('Preflight-Sonde entfernt — Ident nicht adoptierbar und kein Rückfallziel erzeugbar');
@@ -620,7 +676,169 @@ class Geraetetausch extends IPSModule
         }
 
         // Links/Referenzen bleiben durch die erhaltene Objekt-ID automatisch gültig.
-        return ['success' => true, 'mode' => 'Adoption', 'reason' => 'adoptiert, Objekt-ID ' . $oldVariableID . ' erhalten', 'fallback' => false, 'dryRun' => false];
+        return ['success' => true, 'mode' => 'Adoption', 'reason' => 'adoptiert, Objekt-ID ' . $oldVariableID . ' erhalten', 'fallback' => false, 'dryRun' => false, 'archiveVariableID' => $oldVariableID];
+    }
+
+    // Rechnet ALLE archivierten Rohwerte einer Variable um ($wert × $factor),
+    // z. B. kW→W (×1000), damit übernommene Alt-Historie dieselbe Einheit hat
+    // wie die neuen Werte des Zielmoduls. Umrechnung wirkt auf das ARCHIV —
+    // der aktuelle Variablenwert schreibt das Zielmodul selbst neu.
+    //
+    // Das ist ein destruktiver Eingriff in Archivdaten (Löschen + Neuschreiben),
+    // deshalb mehrfach abgesichert:
+    //  1. Phase A (lesend): Zeitfenster bestimmen, jedes Fenster < Lesegrenze
+    //     (AC_GetLoggedValues liefert höchstens $limit Werte, sonst wird das
+    //     Fenster halbiert); Summe muss dem Archiv-RecordCount entsprechen,
+    //     sonst Abbruch VOR jeder Änderung. Im scharfen Lauf werden dabei alle
+    //     Originalwerte in eine Sicherungsdatei geschrieben — gelingt das nicht,
+    //     Abbruch ohne Änderung.
+    //  2. Phase B je Fenster: erneut lesen (Anzahl muss unverändert sein),
+    //     Fenster löschen, umgerechnete Werte in kleinen Päckchen zurück-
+    //     schreiben, Anzahl prüfen — weicht sie ab, wird das Fenster aus den
+    //     Originalwerten wiederhergestellt und abgebrochen.
+    //  3. Danach AC_ReAggregateVariable und Vermerk im Attribut ArchiveRescaled:
+    //     dieselbe Variable wird nie ein zweites Mal umgerechnet.
+    //
+    // $cutoff (Unix-Zeit) begrenzt die Umrechnung auf Werte BIS zu diesem
+    // Zeitpunkt = Beginn der Übernahme. Alles danach schreibt bereits das
+    // Zielmodul in der neuen Einheit und darf nicht nochmal umgerechnet werden.
+    private function RescaleArchiveValues(int $archiveID, int $variableID, float $factor, bool $dryRun, int $cutoff): array
+    {
+        $fail = fn (string $message) => ['success' => false, 'message' => $message, 'count' => 0];
+
+        if (!is_finite($factor) || $factor < 1.0e-9 || $factor > 1.0e9) {
+            return $fail('Faktor ' . $factor . ' unzulässig');
+        }
+        foreach (['AC_GetLoggedValues', 'AC_DeleteVariableData', 'AC_AddLoggedValues', 'AC_ReAggregateVariable', 'AC_GetAggregationVariables'] as $function) {
+            if (!function_exists($function)) {
+                return $fail($function . ' nicht verfügbar');
+            }
+        }
+        $type = IPS_GetVariable($variableID)['VariableType'];
+        if ($type !== 1 && $type !== 2) {
+            return $fail('nur Integer-/Float-Variablen sind umrechenbar (hier: ' . $this->TypeName($type) . ')');
+        }
+
+        $done = json_decode($this->ReadAttributeString('ArchiveRescaled'), true);
+        if (!is_array($done)) {
+            $done = [];
+        }
+        if (isset($done[$variableID])) {
+            return ['success' => true, 'count' => 0, 'message' => 'bereits umgerechnet (×' . $done[$variableID]['factor'] . ' am ' . $done[$variableID]['at'] . ') — nicht erneut'];
+        }
+
+        // Archiv-Metadaten (RecordCount/LastTime aus AC_GetAggregationVariables)
+        // sind direkt nach Schreibzugriffen veraltet (live geprüft: RecordCount 0,
+        // IsValid false) — sie dienen nur als Plausibilitätsgrenze, wenn gültig.
+        $records = null;
+        foreach ((array) @AC_GetAggregationVariables($archiveID, false) as $row) {
+            if ((int) $row['VariableID'] === $variableID && !empty($row['IsValid'])) {
+                $records = (int) $row['RecordCount'];
+                break;
+            }
+        }
+
+        $limit = 5000;
+        $backupHandle = null;
+        $backupFile = '';
+        if (!$dryRun) {
+            $directory = IPS_GetKernelDir() . 'Geraetetausch-Sicherung';
+            if (!is_dir($directory) && !@mkdir($directory, 0775, true)) {
+                return $fail('Sicherungsordner ' . $directory . ' nicht anlegbar — Abbruch ohne Änderung');
+            }
+            $backupFile = $directory . '/archiv_' . $variableID . '_' . date('Ymd_His') . '.jsonl';
+            $backupHandle = @fopen($backupFile, 'w');
+            if ($backupHandle === false) {
+                return $fail('Sicherungsdatei ' . $backupFile . ' nicht schreibbar — Abbruch ohne Änderung');
+            }
+        }
+
+        // Phase A: Fenster bestimmen (und sichern).
+        $windows = [];
+        $total = 0;
+        $error = null;
+        $slim = fn (array $values) => array_map(fn ($v) => ['TimeStamp' => (int) $v['TimeStamp'], 'Value' => $v['Value']], $values);
+        $collect = null;
+        $collect = function (int $start, int $end) use (&$collect, &$windows, &$total, &$error, $archiveID, $variableID, $limit, $backupHandle, $slim) {
+            $values = AC_GetLoggedValues($archiveID, $variableID, $start, $end, $limit);
+            if (!is_array($values)) {
+                $error = 'Lesen des Archivs fehlgeschlagen';
+                return;
+            }
+            $count = count($values);
+            if ($count >= $limit) {
+                if ($end <= $start) {
+                    $error = 'mehr als ' . $limit . ' Werte in derselben Sekunde';
+                    return;
+                }
+                $middle = intdiv($start + $end, 2);
+                $collect($start, $middle);
+                if ($error === null) {
+                    $collect($middle + 1, $end);
+                }
+                return;
+            }
+            if ($count === 0) {
+                return;
+            }
+            $windows[] = [$start, $end, $count];
+            $total += $count;
+            if ($backupHandle) {
+                fwrite($backupHandle, json_encode(['start' => $start, 'end' => $end, 'values' => $slim($values)]) . "\n");
+            }
+        };
+        $collect(0, $cutoff);
+        if ($backupHandle) {
+            fclose($backupHandle);
+        }
+        if ($error !== null) {
+            return $fail($error . ' — Abbruch ohne Änderung');
+        }
+        if ($total === 0) {
+            if ($backupFile !== '') {
+                @unlink($backupFile);
+            }
+            return ['success' => true, 'count' => 0, 'message' => 'keine archivierten Werte vor der Übernahme — nichts umzurechnen'];
+        }
+        if ($records !== null && $total > $records) {
+            return $fail('gelesen ' . $total . ' Werte, Archiv meldet nur ' . $records . ' — Abbruch ohne Änderung');
+        }
+
+        if ($dryRun) {
+            return ['success' => true, 'count' => $total, 'message' => 'würde ' . $total . ' Archivwerte in ' . count($windows) . ' Fenstern umrechnen (vorher Sicherungsdatei)'];
+        }
+
+        // Phase B: je Fenster löschen + umgerechnet zurückschreiben.
+        foreach ($windows as [$start, $end, $expected]) {
+            $current = AC_GetLoggedValues($archiveID, $variableID, $start, $end, $limit);
+            if (!is_array($current) || count($current) !== $expected) {
+                return $fail('Archiv hat sich während der Umrechnung verändert (Fenster ' . $start . '–' . $end . ') — Abbruch, bisherige Fenster bereits umgerechnet, Sicherung: ' . $backupFile);
+            }
+            $original = $slim($current);
+            usort($original, fn ($a, $b) => $a['TimeStamp'] <=> $b['TimeStamp']);
+            $scaled = array_map(function ($v) use ($factor, $type) {
+                $value = $v['Value'] * $factor;
+                return ['TimeStamp' => $v['TimeStamp'], 'Value' => $type === 1 ? (int) round($value) : (float) $value];
+            }, $original);
+
+            AC_DeleteVariableData($archiveID, $variableID, $start, $end);
+            foreach (array_chunk($scaled, 500) as $batch) {
+                AC_AddLoggedValues($archiveID, $variableID, $batch);
+            }
+            $after = AC_GetLoggedValues($archiveID, $variableID, $start, $end, $limit);
+            if (!is_array($after) || count($after) !== $expected) {
+                AC_DeleteVariableData($archiveID, $variableID, $start, $end);
+                foreach (array_chunk($original, 500) as $batch) {
+                    AC_AddLoggedValues($archiveID, $variableID, $batch);
+                }
+                return $fail('Fenster ' . $start . '–' . $end . ' nach dem Schreiben unvollständig — Originalwerte wiederhergestellt, Abbruch; Sicherung: ' . $backupFile);
+            }
+        }
+
+        AC_ReAggregateVariable($archiveID, $variableID);
+        $done[$variableID] = ['factor' => $factor, 'at' => date('d.m.Y H:i'), 'count' => $total];
+        $this->WriteAttributeString('ArchiveRescaled', json_encode($done));
+        return ['success' => true, 'count' => $total, 'message' => $total . ' Archivwerte in ' . count($windows) . ' Fenstern umgerechnet (Sicherung: ' . $backupFile . ')'];
     }
 
     // Liest den Aggregationstyp einer Variable (0 = Standard/Mittelwert,
@@ -933,9 +1151,25 @@ class Geraetetausch extends IPSModule
             } else {
                 $status = 'Ziel wählen';
             }
+            // Optionaler Umrechnungsfaktor fürs Archiv (Mapping-Feld 'archiveFactor',
+            // z. B. 1000 für kW→W): nur übernehmen, wenn das Zielmodul ihn für
+            // genau diese Zuordnung liefert und er plausibel ist. Fehlt er, bleibt
+            // es bei 1.0 (keine Umrechnung) — abwärtskompatibel zu Zielmodulen,
+            // die das Feld (noch) nicht kennen.
+            $archiveFactor = 1.0;
+            if ($viaForeignMapping && $suggestedNewID !== 0) {
+                $candidate = $foreignMapping[$row['Ident']]['archiveFactor'] ?? null;
+                if (is_numeric($candidate) && (float) $candidate > 0.0 && is_finite((float) $candidate)) {
+                    $archiveFactor = (float) $candidate;
+                }
+            }
+            if ($archiveFactor !== 1.0) {
+                $status .= ' — Archivwerte werden ×' . $archiveFactor . ' umgerechnet';
+            }
             $migrations[] = [
                 'OldVariableID' => $oldID,
                 'NewVariableID' => $suggestedNewID,
+                'ArchiveFactor' => $archiveFactor,
                 'Status' => $status,
                 'References' => $this->DescribeReferences($oldID, $linkCounts),
             ];
@@ -1496,7 +1730,15 @@ class Geraetetausch extends IPSModule
             $oldName = IPS_VariableExists($oldID) ? IPS_GetName($oldID) : (string) $oldID;
             $newName = IPS_VariableExists($newID) ? IPS_GetName($newID) : (string) $newID;
 
-            $result = $this->AdoptVariable($oldID, $newID, $dryRun);
+            // Umrechnungsfaktor fürs Archiv (Spalte "Archiv-Faktor", vom Zielmodul
+            // per GetIdentMapping vorgeschlagen, vom Nutzer änderbar). Fehlend,
+            // leer oder 0 = 1.0 = keine Umrechnung (ältere Listeneinträge ohne
+            // dieses Feld bleiben so unverändert gültig).
+            $factor = (float) ($row['ArchiveFactor'] ?? 1.0);
+            if ($factor <= 0.0) {
+                $factor = 1.0;
+            }
+            $result = $this->AdoptVariableWithFactor($oldID, $newID, $dryRun, $factor);
             $prefix = $dryRun ? '[Simulation] ' : '';
             if ($result['success']) {
                 $row['Status'] = $prefix . ($dryRun ? 'würde übernommen (Adoption)' : 'übernommen (Adoption)');

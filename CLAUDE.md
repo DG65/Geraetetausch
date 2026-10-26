@@ -72,6 +72,21 @@ Vorgängermodule Felder je nach Firmware unterschiedlich benennen, z. B. `power1
 'type' => int (IPS `VARIABLETYPE_*`: 0=Bool,1=Int,2=Float,3=String)], ...]`, nur erkannte
 Treffer, leeres Array = "kenne diese Fremdmodul-GUID nicht" (kein Fehler).
 
+**Optionales Zusatzfeld `'archiveFactor' => float` (Verbund-Vertrag, 26.10.2026, mit ChargerHub
+abgestimmt):** Unterscheiden sich die Einheiten von Alt- und Neu-Datenpunkt (go-e-Charger liefert
+Leistung in kW, ChargerHub erwartet W → `1000.0`), kann ein Eintrag zusätzlich
+`'archiveFactor' => 1000.0` tragen. Semantik: `neuer Archivwert = alter Archivwert × archiveFactor`,
+angewendet auf die archivierten Rohwerte der ALT-Variable bei der Übernahme. Fehlt das Feld = 1.0 =
+keine Umrechnung — rein additiv im Rückgabe-Array, keine Änderung der Funktionssignatur
+(also kein Aritätsbruch). Das Zielmodul liefert den Faktor NUR dort, wo es die Alt-Einheit sicher
+kennt. Gerätetausch zeigt ihn in der Spalte „Archiv-Faktor" (Nutzer kann ihn ändern) und schreibt
+dafür ins Archiv: vorher Sicherungsdatei, Zeitfenster-weise Umschreiben mit Nachzählung und
+Wiederherstellung bei Abweichung, nie doppelt auf dieselbe Variable (Attribut `ArchiveRescaled`),
+nur Werte bis zum Beginn der Übernahme (`RescaleArchiveValues()`). Lehre aus dem Live-Test: die
+Archiv-Metadaten (`RecordCount`/`LastTime` aus `AC_GetAggregationVariables`) sind direkt nach
+Schreibzugriffen veraltet — nie als Fenstergrenze benutzen; `AC_GetLoggedValues` liefert bei
+`limit 0` offenbar höchstens 50.000 Werte (live: zwei Variablen mit genau 50000), deshalb zeitfensterweise mit Teilung lesen.
+
 **Bewusst NUR eine Auskunftsfunktion, keine zweite Funktion für die eigentliche Übernahme.**
 Ein ursprünglicher Gegenvorschlag (Zielmodul reparentet selbst per eigener
 `AdoptFromLegacyInstance()`-Funktion) wurde verworfen: Gerätetausch reparentet Alt-Variablen

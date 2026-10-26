@@ -125,14 +125,18 @@
         },
         {
           "type": "PopupButton",
-          "caption": "Was bedeuten die Spalten \"Referenzen\" und \"Plausibel\"?",
+          "caption": "Was bedeuten \"Referenzen\", \"Archiv-Faktor\" und \"Plausibel\"?",
           "width": "480px",
           "popup": {
-            "caption": "Was bedeuten die Spalten \"Referenzen\" und \"Plausibel\"?",
+            "caption": "Was bedeuten \"Referenzen\", \"Archiv-Faktor\" und \"Plausibel\"?",
             "items": [
               {
                 "type": "Label",
                 "caption": "Referenzen (Alt-Variable): zeigt, ob die Variable archiviert wird und wie viele WebFront-Verknüpfungen auf sie zeigen — Hinweis, wie wichtig eine sorgfältige Zuordnung für diesen Datenpunkt ist."
+              },
+              {
+                "type": "Label",
+                "caption": "Archiv-Faktor: Umrechnung der bereits archivierten Alt-Werte bei der Übernahme (z. B. 1000, wenn das alte Modul kW liefert, das neue aber W erwartet). 1 = keine Umrechnung. Das Zielmodul schlägt den Faktor selbst vor (Status zeigt \"Archivwerte werden ×… umgerechnet\"); du kannst ihn hier ändern. ACHTUNG: Die Umrechnung schreibt ins Archiv — vorher wird automatisch eine Sicherungsdatei im IP-Symcon-Verzeichnis \"Geraetetausch-Sicherung\" angelegt, und dieselbe Variable wird nie ein zweites Mal umgerechnet. Nur Werte bis zum Beginn der Übernahme werden umgerechnet, spätere schreibt das Zielmodul schon in der neuen Einheit."
               },
               {
                 "type": "Label",
@@ -167,6 +171,17 @@
           "add": 0,
           "edit": {
             "type": "SelectVariable"
+          }
+        },
+        {
+          "caption": "Archiv-Faktor",
+          "name": "ArchiveFactor",
+          "width": "110px",
+          "add": 1,
+          "edit": {
+            "type": "NumberSpinner",
+            "digits": 3,
+            "minimum": 0.000001
           }
         },
         {
@@ -418,7 +433,7 @@
     },
     {
       "type": "Label",
-      "caption": "⚠️ Risiko: Erkennt das Zielmodul einen Datenpunkt beim Speichern nicht (falscher Ident/Typ/inaktive Gruppe), kann es ihn ERSATZLOS LÖSCHEN, samt Archivhistorie. Eine unauffällige Testvariable prüft das vorab — bei eigenen NRG-Stack-Modulen ist dieses Verhalten getestet, bei fremden Modulen nicht garantiert."
+      "caption": "⚠️ Risiko: Erkennt das Zielmodul einen Datenpunkt beim Speichern nicht (falscher Ident/Typ/inaktive Gruppe), kann es ihn ERSATZLOS LÖSCHEN, samt Archivhistorie. Eine unauffällige Testvariable prüft das vorab — bei eigenen NRG-Stack-Modulen ist dieses Verhalten getestet, bei fremden Modulen nicht garantiert. Steht in der Spalte \"Archiv-Faktor\" ein Wert ungleich 1, wird zusätzlich das Archiv dieser Variablen umgeschrieben (Werte löschen und umgerechnet neu schreiben) — vorher entsteht automatisch eine Sicherungsdatei."
     },
     {
       "type": "CheckBox",
